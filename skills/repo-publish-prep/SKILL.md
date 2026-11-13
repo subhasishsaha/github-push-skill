@@ -21,10 +21,10 @@ The primary coordinator acts as the **Orchestrator**. It does not perform audits
 To prevent subagents from overstepping their scope—such as **Agent 04 editing Agent 03's audit report** instead of fixing the application code—the Orchestrator enforces strict behavioral contracts stored in:
 ```text
 .audit/.agents/
-├── agent_01.md    # Explorer contract (write only .audit/recon/ & .audit/.scratch/)
-├── agent_02.md    # Documenter contract (write only README.md)
-├── agent_03.md    # Auditor contract (write only .audit/.scratch/ & .audit/verification/agent_03/report.md)
-└── agent_04.md    # Remediation contract (write ONLY application code; NEVER touch report.md)
+├── agent_01.md    # Explorer contract (write only .audit/reports/agent_01_report.md & .audit/.scratch/)
+├── agent_02.md    # Documenter contract (write only README.md; never touch .audit/reports/)
+├── agent_03.md    # Auditor contract (write only .audit/.scratch/ & .audit/reports/agent_03_report.md)
+└── agent_04.md    # Remediation contract (write ONLY application code; NEVER touch .audit/reports/)
 ```
 
 The Orchestrator injects the exact behavioral contract from `.audit/.agents/agent_XX.md` into each subagent's system prompt and task instructions.
@@ -44,7 +44,7 @@ flowchart TD
     VerifyWithUser -->|User: Verified OK| Phase2["Proceed to Phase 2"]
     
     CheckReadme -->|No| LaunchA1["Orchestrator injects .audit/.agents/agent_01.md\nSpawns Agent 01 (Explorer)"]
-    LaunchA1 --> A1Work["Agent 01 inspects code, creates scratch scripts in .audit/.scratch/\nWrites .audit/recon/agent_01_report.md\n(STRICT: Never writes README.md)"]
+    LaunchA1 --> A1Work["Agent 01 inspects code, creates scratch scripts in .audit/.scratch/\nWrites .audit/reports/agent_01_report.md\n(STRICT: Never writes README.md)"]
     A1Work --> LaunchA2["Orchestrator injects .audit/.agents/agent_02.md\nSpawns Agent 02 (Verifier)"]
     LaunchA2 --> A2Verify{"Agent 02 verifies code on disk.\nDoes Agent 01 report match truth?"}
     A2Verify -->|Fails / Discrepancy| A1Retry["Reject report with diff.\nAgent 01 discards & re-runs"]
@@ -55,16 +55,16 @@ flowchart TD
 
     %% Phase 2
     Phase2 --> LaunchA3["Orchestrator injects .audit/.agents/agent_03.md\nSpawns Agent 03 (Adversarial Auditor)"]
-    LaunchA3 --> A3Work["Agent 03 creates on-demand audit scripts in .audit/.scratch/:\n- AST stubs & eagerness bias\n- Import errors & undeclared packages\n- Hardcoded developer paths & IPs\n- Markdown link & doc drift\nWrites findings to .audit/verification/agent_03/report.md\n(STRICT: Makes NO application code edits)"]
+    LaunchA3 --> A3Work["Agent 03 creates on-demand audit scripts in .audit/.scratch/:\n- AST stubs & eagerness bias\n- Import errors & undeclared packages\n- Hardcoded developer paths & IPs\n- Markdown link & doc drift\nWrites findings to .audit/reports/agent_03_report.md\n(STRICT: Makes NO application code edits)"]
     A3Work --> CheckIssues{"Are there blockers / issues?"}
     CheckIssues -->|No Issues| Phase3["Proceed to Phase 3"]
     CheckIssues -->|Issues Found| LaunchA4["Orchestrator injects .audit/.agents/agent_04.md\nSpawns Agent 04 (Remediation Engineer)"]
-    LaunchA4 --> A4Work["Agent 04 implements full, un-stubbed fixes in code\n(STRICT: NEVER touches .audit/verification/agent_03/report.md)"]
+    LaunchA4 --> A4Work["Agent 04 implements full, un-stubbed fixes in code\n(STRICT: NEVER touches .audit/reports/)"]
     A4Work --> A3Recheck["Orchestrator returns control to Agent 03\nRe-runs dynamic audit in .audit/.scratch/"]
     A3Recheck --> CheckIssues
 
     %% Phase 3
-    Phase3 --> FinalReport["Orchestrator generates Final Certification at:\n.agents/final_report/report.md"]
+    Phase3 --> FinalReport["Orchestrator generates Final Certification at:\n.audit/reports/final_report.md"]
     FinalReport --> PresentUser["Present Certification & Executive Summary to User"]
 ```
 
@@ -89,24 +89,24 @@ The Orchestrator must define and spawn each subagent with its explicit contract 
 
 ### 1. `agent_01` — Codebase Archeologist / Explorer
 - **Contract File:** `.audit/.agents/agent_01.md`
-- **Permitted Writes:** `.audit/.scratch/*`, `.audit/recon/agent_01_report.md`.
-- **FORBIDDEN:** Creating or editing `README.md`, editing application source code, editing `.audit/verification/`.
+- **Permitted Writes:** `.audit/.scratch/*`, `.audit/reports/agent_01_report.md`.
+- **FORBIDDEN:** Creating or editing `README.md`, editing application source code, editing `.audit/reports/final_report.md` or `.audit/reports/agent_03_report.md`.
 
 ### 2. `agent_02` — Independent Verifier & Technical Writer
 - **Contract File:** `.audit/.agents/agent_02.md`
 - **Permitted Writes:** `README.md` at repository root.
-- **FORBIDDEN:** Modifying `.audit/recon/agent_01_report.md`, editing application code, inventing ungrounded features.
+- **FORBIDDEN:** Modifying `.audit/reports/agent_01_report.md` or any file in `.audit/reports/`, editing application code, inventing ungrounded features.
 
 ### 3. `agent_03` — Adversarial Codebase Auditor
 - **Contract File:** `.audit/.agents/agent_03.md`
-- **Permitted Writes:** `.audit/.scratch/*`, `.audit/verification/agent_03/report.md`.
+- **Permitted Writes:** `.audit/.scratch/*`, `.audit/reports/agent_03_report.md`.
 - **FORBIDDEN:** Modifying application source code files, editing `README.md`, editing package manifests. Sole maintainer of the audit report.
 
 ### 4. `agent_04` — Remediation Engineer
 - **Contract File:** `.audit/.agents/agent_04.md`
 - **Permitted Writes:** Application source code files, package manifests (`package.json`, `requirements.txt`), repository hygiene files (`.gitignore`, `.editorconfig`, `.env.example`, `CONTRIBUTING.md`, `SECURITY.md`).
-- **CRITICAL RESTRICTION:** **MUST NEVER TOUCH, EDIT, OR MODIFY `.audit/verification/agent_03/report.md` OR ANY FILE IN `.audit/verification/`!**
-  - The audit report belongs exclusively to Agent 03.
+- **CRITICAL RESTRICTION:** **MUST NEVER TOUCH, EDIT, OR MODIFY `.audit/reports/` (INCLUDING `agent_03_report.md` AND `final_report.md`)!**
+  - All audit reports belong exclusively to the auditor and Orchestrator.
   - Agent 04 must NEVER edit the report to check off boxes or delete findings.
   - Agent 04 fixes the issues in actual source code. Agent 03 independently re-audits the code and updates the report itself.
   - Zero stubs: No `pass`, no ellipsis, no placeholder comments, no mock bypasses.
@@ -125,25 +125,25 @@ Ensure `.audit/.agents/` exists and contains the 4 behavioral contracts (bootstr
    - If user signals drift: **Halt execution immediately.** Ask for clarification before proceeding.
    - If user confirms: Proceed to Phase 2.
 3. If `README.md` is missing:
-   - Orchestrator injects `.audit/.agents/agent_01.md` and spawns `agent_01`. Agent 01 writes `.audit/recon/agent_01_report.md`.
+   - Orchestrator injects `.audit/.agents/agent_01.md` and spawns `agent_01`. Agent 01 writes `.audit/reports/agent_01_report.md`.
    - Orchestrator injects `.audit/.agents/agent_02.md` and spawns `agent_02`. Agent 02 verifies. If failed, loops back to Agent 01 (Max 3 iterations). Once passed, Agent 02 drafts `README.md`.
    - Present newly drafted `README.md` to user for explicit confirmation.
 
 ### Phase 2: Implementation Integrity Loop
 1. Orchestrator ensures directory `.audit/.scratch/` exists.
 2. Orchestrator injects `.audit/.agents/agent_03.md` and invokes `agent_03`.
-3. `agent_03` writes its inspection scripts into `.audit/.scratch/`, runs them, and outputs `.audit/verification/agent_03/report.md`.
-4. Orchestrator reads `.audit/verification/agent_03/report.md`.
+3. `agent_03` writes its inspection scripts into `.audit/.scratch/`, runs them, and outputs `.audit/reports/agent_03_report.md`.
+4. Orchestrator reads `.audit/reports/agent_03_report.md`.
 5. If blockers or warnings exist:
    - Orchestrator injects `.audit/.agents/agent_04.md` and invokes `agent_04` with the action items.
-   - `agent_04` implements real code fixes. Agent 04 strictly leaves `report.md` untouched.
+   - `agent_04` implements real code fixes. Agent 04 strictly leaves `.audit/reports/` untouched.
    - Orchestrator hands control back to `agent_03` to re-execute its scratch audit.
    - Loop repeats until 0 blockers remain (Circuit breaker: Max 3 iterations, then escalate to user).
 
 ### Phase 3: Final Certification & Ledger
 1. When Agent 03 confirms 0 blockers remain, Orchestrator compiles and writes:
    ```text
-   .agents/final_report/report.md
+   .audit/reports/final_report.md
    ```
    Adhering to [templates/audit/final_report.template.md](./templates/audit/final_report.template.md).
 2. Orchestrator verifies `git status`.

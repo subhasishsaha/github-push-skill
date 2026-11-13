@@ -23,4 +23,8 @@ dist/
 *.log
 scratch/
 tmp/
-.audit/
+
+# Audit outputs
+.audit/*
+!.audit/reports/
+!.audit/reports/**

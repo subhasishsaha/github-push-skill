@@ -8,10 +8,10 @@ The primary agent must act as the **Orchestrator**, coordinating specialized sub
 
 ### Behavioral Isolation Contracts (`.audit/.agents/`)
 To prevent subagents from overstepping their scope (e.g. Agent 04 editing Agent 03's audit report), the Orchestrator injects behavioral contracts from `.audit/.agents/`:
-- **`agent_01.md`**: Permitted writes: `.audit/recon/` & `.audit/.scratch/`. Forbidden: `README.md`, application code.
-- **`agent_02.md`**: Permitted writes: `README.md`. Forbidden: `.audit/recon/`, application code.
-- **`agent_03.md`**: Permitted writes: `.audit/.scratch/` & `.audit/verification/agent_03/report.md`. Forbidden: ANY application code or `README.md`.
-- **`agent_04.md`**: Permitted writes: Application code & configs. **CRITICAL RESTRICTION: MUST NEVER TOUCH `.audit/verification/agent_03/report.md`!** The audit report is strictly owned by Agent 03.
+- **`agent_01.md`**: Permitted writes: `.audit/reports/agent_01_report.md` & `.audit/.scratch/`. Forbidden: `README.md`, application code.
+- **`agent_02.md`**: Permitted writes: `README.md`. Forbidden: `.audit/reports/`, application code.
+- **`agent_03.md`**: Permitted writes: `.audit/.scratch/` & `.audit/reports/agent_03_report.md`. Forbidden: ANY application code or `README.md`.
+- **`agent_04.md`**: Permitted writes: Application code & configs. **CRITICAL RESTRICTION: MUST NEVER TOUCH `.audit/reports/` (INCLUDING `agent_03_report.md` AND `final_report.md`)!** All audit reports are strictly owned by Agent 03 and the Orchestrator.
 
 Subagents dynamically create their own targeted audit and discovery scripts in `.audit/.scratch/` for each run.
 
@@ -21,7 +21,7 @@ Subagents dynamically create their own targeted audit and discovery scripts in `
    - If drifted, **stop execution immediately** and ask for clarification.
    - If verified, proceed to Phase 2.
 2. **If README.md is missing:**
-   - Orchestrator spawns `agent_01` (Codebase Archeologist) to inspect code and draft findings in `.audit/recon/agent_01_report.md` (Agent 01 never writes the README).
+   - Orchestrator spawns `agent_01` (Codebase Archeologist) to inspect code and draft findings in `.audit/reports/agent_01_report.md` (Agent 01 never writes the README).
    - Orchestrator spawns `agent_02` (Verifier) to independently check Agent 01's report against the code.
    - If verification fails, Agent 01 discards and re-runs.
    - Once verified, Agent 02 drafts `README.md` and submits it to user for confirmation.
@@ -35,14 +35,14 @@ Subagents dynamically create their own targeted audit and discovery scripts in `
      - Hardcoded developer paths (`C:\Users\...`, `/home/...`) & IPs
      - Document-to-code drift
      - Secret leaks
-   - Writes report to `.audit/verification/agent_03/report.md`.
+   - Writes report to `.audit/reports/agent_03_report.md`.
 2. **Launch `agent_04` (Remediation Engineer):**
-   - Implements full, production-grade fixes as specified in `report.md`.
-   - Leaves `.audit/verification/agent_03/report.md` completely untouched.
+   - Implements full, production-grade fixes as specified in `agent_03_report.md`.
+   - Leaves `.audit/reports/` completely untouched.
    - Returns control to `agent_03`.
 3. **Re-verification Loop:**
    - Agent 03 re-runs its audit in `.audit/.scratch/`. When all checks pass, Phase 2 is complete.
 
 ### Phase 3: Final Certification
-1. Write the final certification report to `.agents/final_report/report.md`.
+1. Write the final certification report to `.audit/reports/final_report.md`.
 2. Present the executive summary to the user and stage clean Git commits.

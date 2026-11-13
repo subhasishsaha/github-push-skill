@@ -23,7 +23,7 @@ The codebase has undergone dynamic AST forensic auditing via subagents creating 
 | `DRIFT-001` | `DOC_DRIFT` | 🛑 BLOCKER | `CONTRIBUTING.md:10` | Replaced deleted `tests/` reference with plugin JSON validator | ✅ PASS |
 | `DRIFT-002` | `DOC_DRIFT` | 🛑 BLOCKER | `CONTRIBUTING.md:14` | Documented dynamic Orchestrator protocol & `.audit/.scratch/` scripts | ✅ PASS |
 | `DRIFT-003` | `DOC_DRIFT` | ⚠️ WARNING | `agent_03_report.template.md` | Updated re-run instructions to execute dynamic scratch audit scripts | ✅ PASS |
-| `PATH-001` | `ENVIRONMENT_LEAKS` | ⚠️ WARNING | `.agents/final_report/report.md` | Sanitized local Windows absolute path to portable repository identifier | ✅ PASS |
+| `PATH-001` | `ENVIRONMENT_LEAKS` | ⚠️ WARNING | `.audit/reports/final_report.md` | Sanitized local Windows absolute path to portable repository identifier | ✅ PASS |
 
 ---
 

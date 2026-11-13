@@ -12,10 +12,10 @@ The primary coordinator acts as the **Orchestrator**, actively spawning and mana
 ## 🛡️ Behavioral Isolation Contracts (`.audit/.agents/`)
 
 To prevent subagents from overstepping their scope—such as **Agent 04 editing Agent 03's audit report** instead of fixing the application code—the Orchestrator enforces strict behavioral contracts stored in `.audit/.agents/`:
-- **`agent_01.md`**: Permitted writes: `.audit/recon/` & `.audit/.scratch/`. Forbidden: `README.md`, application code.
-- **`agent_02.md`**: Permitted writes: `README.md`. Forbidden: `.audit/recon/`, application code.
-- **`agent_03.md`**: Permitted writes: `.audit/.scratch/` & `.audit/verification/agent_03/report.md`. Forbidden: ANY application code or `README.md`.
-- **`agent_04.md`**: Permitted writes: Application code & configs. **CRITICAL RESTRICTION: MUST NEVER TOUCH `.audit/verification/agent_03/report.md`!** The audit report is strictly owned by Agent 03.
+- **`agent_01.md`**: Permitted writes: `.audit/reports/agent_01_report.md` & `.audit/.scratch/`. Forbidden: `README.md`, application code.
+- **`agent_02.md`**: Permitted writes: `README.md`. Forbidden: `.audit/reports/`, application code.
+- **`agent_03.md`**: Permitted writes: `.audit/.scratch/` & `.audit/reports/agent_03_report.md`. Forbidden: ANY application code or `README.md`.
+- **`agent_04.md`**: Permitted writes: Application code & configs. **CRITICAL RESTRICTION: MUST NEVER TOUCH `.audit/reports/` (INCLUDING `agent_03_report.md` AND `final_report.md`)!** All audit reports are strictly owned by Agent 03 and the Orchestrator.
 
 The Orchestrator injects the exact behavioral contract from `.audit/.agents/agent_XX.md` into each subagent's system prompt and task instructions.
 
@@ -37,13 +37,13 @@ flowchart TD
     A2 -->|Discrepancy| A1
     A2 -->|Verified| ConfirmUser["User Confirms Generated README"] --> Phase2
 
-    Phase2 --> A3["Agent 03: Adversarial Auditor\nCreates dynamic scripts in .audit/.scratch/\nWrites to .audit/verification/agent_03/report.md"]
+    Phase2 --> A3["Agent 03: Adversarial Auditor\nCreates dynamic scripts in .audit/.scratch/\nWrites to .audit/reports/agent_03_report.md"]
     A3 --> CheckBlockers{"Any blockers / issues?"}
     CheckBlockers -->|No| Phase3["Phase 3: Final Certification"]
-    CheckBlockers -->|Yes| A4["Agent 04: Remediation Engineer\nImplements real, un-stubbed fixes in code\n(NEVER touches report.md)"]
+    CheckBlockers -->|Yes| A4["Agent 04: Remediation Engineer\nImplements real, un-stubbed fixes in code\n(NEVER touches .audit/reports/)"]
     A4 -->|Returns control| A3
 
-    Phase3 --> FinalReport["Generates .agents/final_report/report.md\nStages clean Git commit"]
+    Phase3 --> FinalReport["Generates .audit/reports/final_report.md\nStages clean Git commit"]
 ```
 
 ---
