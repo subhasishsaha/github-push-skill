@@ -87,7 +87,7 @@ def scan_codebase_for_env_vars(target_dir: Path) -> Set[str]:
                         var_name = match.group(1)
                         if len(var_name) > 1 and not var_name.startswith("_"):
                             discovered.add(var_name)
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
     return discovered
 

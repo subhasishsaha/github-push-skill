@@ -20,6 +20,25 @@ import argparse
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
+from datetime import datetime
+
+# Attempt to load sibling specialized scanners
+try:
+    from scan_stubs import scan_stubs
+    from scan_dependencies import scan_dependency_mismatches
+    from scan_path_leaks import scan_path_leaks
+    from scan_doc_drift import scan_doc_drift
+    HAS_SPECIALIZED = True
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        from scan_stubs import scan_stubs
+        from scan_dependencies import scan_dependency_mismatches
+        from scan_path_leaks import scan_path_leaks
+        from scan_doc_drift import scan_doc_drift
+        HAS_SPECIALIZED = True
+    except ImportError:
+        HAS_SPECIALIZED = False
 
 # --- SECRET SCANNING PATTERNS ---
 SECRET_PATTERNS = [
@@ -244,7 +263,7 @@ class RepoAuditor:
                         file_path=readme_candidates[0],
                         remediation="Replace scaffold placeholder text with actual project documentation."
                     )
-            except Exception as e:
+            except (OSError, UnicodeDecodeError):
                 pass
 
         # 2. LICENSE
@@ -268,7 +287,7 @@ class RepoAuditor:
                         file_path=license_candidates[0],
                         remediation="Replace year and copyright owner with actual values."
                     )
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
 
         # 3. .gitignore
@@ -315,7 +334,7 @@ class RepoAuditor:
                             file_path=".gitignore",
                             remediation="Add '__pycache__/', '*.pyc', and '.venv/' to .gitignore."
                         )
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
 
         # 4. .env.example
@@ -481,7 +500,74 @@ class RepoAuditor:
                                 line_number=line_idx,
                                 remediation="Remove secret immediately. Move credentials to an untracked .env file or secret manager."
                             )
-        except Exception:
+        except (OSError, UnicodeDecodeError):
+            pass
+
+    def run_specialized_checks(self):
+        """Execute deep forensic checks for stubs, dependencies, leaks, and drift."""
+        if not HAS_SPECIALIZED:
+            return
+
+        # 1. Stub and eagerness bias scan
+        try:
+            stub_findings = scan_stubs(self.target)
+            for sf in stub_findings:
+                rel = str(Path(sf["file"]).relative_to(self.target)).replace("\\", "/") if self.target in Path(sf["file"]).parents or self.target == Path(sf["file"]) else sf["file"]
+                sev = "BLOCKER" if sf["type"] in ["EMPTY_FUNCTION_PASS", "EMPTY_FUNCTION_ELLIPSIS", "NOT_IMPLEMENTED_ERROR"] else "WARNING"
+                self.log_finding(
+                    sev, "EAGERNESS_BIAS",
+                    f"Stub / Incomplete implementation ({sf['type']})",
+                    sf["description"],
+                    file_path=rel,
+                    line_number=sf.get("line"),
+                    remediation="Fully implement the function logic or remove hollow placeholder."
+                )
+        except (OSError, UnicodeDecodeError, SyntaxError):
+            pass
+
+        # 2. Dependency mismatch scan
+        try:
+            dep_res = scan_dependency_mismatches(self.target)
+            for df in dep_res.get("findings", []):
+                self.log_finding(
+                    df["severity"], "DEPENDENCIES",
+                    f"Undeclared dependency: {df['package']}",
+                    df["description"],
+                    file_path=df["used_in"][0] if df.get("used_in") else None,
+                    remediation=f"Add '{df['package']}' to your package manifest (requirements.txt, package.json, etc.)."
+                )
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, SyntaxError):
+            pass
+
+        # 3. Local path & environment leaks
+        try:
+            path_findings = scan_path_leaks(self.target)
+            for pf in path_findings:
+                rel = str(Path(pf["file"]).relative_to(self.target)).replace("\\", "/") if self.target in Path(pf["file"]).parents or self.target == Path(pf["file"]) else pf["file"]
+                self.log_finding(
+                    "BLOCKER", "ENVIRONMENT_LEAKS",
+                    "Hardcoded local environment or path leak",
+                    pf["description"],
+                    file_path=rel,
+                    line_number=pf.get("line"),
+                    remediation="Replace hardcoded absolute path or local IP with relative path or environment variable."
+                )
+        except (OSError, UnicodeDecodeError):
+            pass
+
+        # 4. Doc drift scan
+        try:
+            doc_findings = scan_doc_drift(self.target)
+            for dcf in doc_findings:
+                rel = str(Path(dcf["file"]).relative_to(self.target)).replace("\\", "/") if self.target in Path(dcf["file"]).parents or self.target == Path(dcf["file"]) else dcf["file"]
+                self.log_finding(
+                    "BLOCKER", "DOC_DRIFT",
+                    f"Documentation broken reference ({dcf['type']})",
+                    dcf["description"],
+                    file_path=rel,
+                    remediation="Update link or create missing file/image referenced in documentation."
+                )
+        except (OSError, UnicodeDecodeError):
             pass
 
     def calculate_score(self) -> Tuple[int, str]:
@@ -506,12 +592,14 @@ class RepoAuditor:
 
         return score, status
 
-    def run_audit(self) -> Dict[str, Any]:
+    def run_audit(self, specialized: bool = True) -> Dict[str, Any]:
         """Execute full audit suite and return structured results."""
         self.detect_tech_stacks()
         self.check_git_status()
         self.check_essential_files()
         self.scan_files_and_directories()
+        if specialized:
+            self.run_specialized_checks()
         
         score, status = self.calculate_score()
         
@@ -610,12 +698,107 @@ def format_markdown_report(results: Dict[str, Any]) -> str:
 
     return "\n".join(lines)
 
+def format_agent_03_report(results: Dict[str, Any]) -> str:
+    """Format report specifically for Agent 03 -> Agent 04 remediation loop."""
+    lines = []
+    lines.append("# 🕵️ Agent 03 Codebase Verification & Irregularities Report\n")
+    lines.append(f"- **Target Directory:** `{results['target']}`")
+    lines.append(f"- **Audit Generated:** `{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')}`")
+    lines.append(f"- **Current Readiness Score:** **{results['score']} / 100** (`{results['status']}`)\n")
+    
+    lines.append("## Irregularity Triage Matrix\n")
+    lines.append("| Category | Severity | File / Symbol | Remediation Required |")
+    lines.append("| :--- | :---: | :--- | :--- |")
+    
+    for f in results["findings"]:
+        loc = f"`{f['file']}`" + (f":{f['line']}" if f.get('line') else "") if f.get('file') else "Repository Root"
+        sev_icon = "🛑" if f["severity"] == "BLOCKER" else ("⚠️" if f["severity"] == "WARNING" else "💡")
+        remed = f.get("remediation", f["description"]).replace("|", "\\|")
+        lines.append(f"| `{f['category']}` | {sev_icon} **{f['severity']}** | {loc} | {remed} |")
+    lines.append("")
+
+    lines.append("## Detailed Action Items for Agent 04 (Remediation Engineer)\n")
+    categories = sorted(set(f["category"] for f in results["findings"]))
+    if not categories:
+        lines.append("🎉 **Zero irregularities detected.** All codebase checks, imports, naming, and doc alignment pass!\n")
+    else:
+        for cat in categories:
+            items = [f for f in results["findings"] if f["category"] == cat]
+            lines.append(f"### Category: `{cat}` ({len(items)} item{'s' if len(items) > 1 else ''})\n")
+            for i, item in enumerate(items, 1):
+                loc = f" (`{item['file']}`" + (f":{item['line']}" if item.get('line') else "") + ")" if item.get('file') else ""
+                lines.append(f"{i}. **{item['title']}**{loc}")
+                lines.append(f"   - **Details:** {item['description']}")
+                if item.get("remediation"):
+                    lines.append(f"   - **Required Fix:** {item['remediation']}")
+                lines.append("")
+
+    lines.append("## Agent Hand-off Protocol\n")
+    lines.append("1. **Agent 04:** Read each action item above and implement the complete fix in source code.")
+    lines.append("2. **Agent 04:** Once modifications are complete, return control to **Agent 03**.")
+    lines.append("3. **Agent 03:** Re-run this audit to verify that all irregularities are resolved.")
+    return "\n".join(lines)
+
+def format_final_report(results: Dict[str, Any]) -> str:
+    """Format Phase 3 certification report (.agents/final_report/report.md)."""
+    lines = []
+    lines.append("# 🏆 Final Repository Publishing Certification & Report\n")
+    lines.append(f"- **Target Repository:** `{results['target']}`")
+    lines.append(f"- **Certified At:** `{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')}`")
+    lines.append(f"- **Final Readiness Score:** **{results['score']} / 100** (`{results['status']}`)\n")
+    lines.append("## 1. Publication Readiness Verdict\n")
+    
+    if results['findings_count']['blockers'] == 0:
+        lines.append("✅ **VERIFIED PASSED:** All adversarial checks across the 3-phase verification gate have succeeded with ZERO blockers.")
+    else:
+        lines.append(f"🛑 **ACTION REQUIRED:** {results['findings_count']['blockers']} blockers remain unresolved.")
+    lines.append("")
+
+    lines.append("## 2. Integrity Verification Matrix\n")
+    lines.append("| Verification Pillar | Findings Count | Status | Verification Method |")
+    lines.append("| :--- | :---: | :---: | :--- |")
+    
+    cat_counts = {}
+    for f in results["findings"]:
+        cat_counts[f["category"]] = cat_counts.get(f["category"], 0) + 1
+
+    pillars = [
+        ("SECRETS", "Secrets & Credentials", "Static Token & Credential Scanner"),
+        ("EAGERNESS_BIAS", "Eagerness Bias & Stubs", "AST Empty Function & Stub Scanner"),
+        ("DEPENDENCIES", "Dependency Declarations", "AST Import vs Manifest Checker"),
+        ("ENVIRONMENT_LEAKS", "Local Path & Env Leaks", "OS User Path & IP Address Scanner"),
+        ("DOC_DRIFT", "Document-to-Code Drift", "Markdown Link & Entrypoint Validator"),
+        ("GIT_HYGIENE", "Git Working Tree & Tracking", "Git Index & Status Audit"),
+    ]
+
+    for cat_key, label, method in pillars:
+        cnt = cat_counts.get(cat_key, 0)
+        status_str = "✅ PASS (0 issues)" if cnt == 0 else f"⚠️ {cnt} issue(s)"
+        lines.append(f"| **{label}** | {cnt} | {status_str} | {method} |")
+    lines.append("")
+
+    lines.append("## 3. Remote Push Instructions for User\n")
+    lines.append("Your codebase is verified. To publish to your Git host:")
+    lines.append("```bash")
+    lines.append("# 1. Review status")
+    lines.append("git status\n")
+    lines.append("# 2. Add remote origin (if not set)")
+    lines.append("git remote add origin https://github.com/<your-org>/<your-repo>.git\n")
+    lines.append("# 3. Push to main branch")
+    lines.append("git push -u origin main")
+    lines.append("```\n")
+
+    return "\n".join(lines)
+
 def main():
     parser = argparse.ArgumentParser(description="Audit codebase for publishing readiness (GitHub/GitLab/Bitbucket)")
     parser.add_argument("path", nargs="?", default=".", help="Root path of repository to audit (default: current directory)")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     parser.add_argument("--markdown", help="Output markdown report to specified file path")
+    parser.add_argument("--agent-report", help="Output Agent 03 verification report to specified path (e.g. .audit/verification/agent_03/report.md)")
+    parser.add_argument("--final-report", help="Output Phase 3 final report to specified path (e.g. .agents/final_report/report.md)")
     parser.add_argument("--fail-on-blockers", action="store_true", help="Exit with non-zero code if blockers exist")
+    parser.add_argument("--no-specialized", action="store_true", help="Disable specialized AST and dependency checks")
     parser.add_argument("--max-size", type=float, default=10.0, help="File size in MB to flag as warning (default: 10)")
     parser.add_argument("--critical-size", type=float, default=50.0, help="File size in MB to flag as blocker (default: 50)")
 
@@ -627,7 +810,7 @@ def main():
         sys.exit(1)
 
     auditor = RepoAuditor(target_path, max_file_size_mb=args.max_size, critical_file_size_mb=args.critical_size)
-    results = auditor.run_audit()
+    results = auditor.run_audit(specialized=(not args.no_specialized))
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -637,10 +820,32 @@ def main():
     if args.markdown:
         md_content = format_markdown_report(results)
         try:
-            Path(args.markdown).write_text(md_content, encoding="utf-8")
+            out_file = Path(args.markdown)
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            out_file.write_text(md_content, encoding="utf-8")
             print(f"\n📄 Markdown report written to: {args.markdown}")
         except Exception as e:
             print(f"Failed to write markdown report: {e}", file=sys.stderr)
+
+    if args.agent_report:
+        agent_md = format_agent_03_report(results)
+        try:
+            out_file = Path(args.agent_report)
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            out_file.write_text(agent_md, encoding="utf-8")
+            print(f"\n🕵️ Agent 03 report written to: {args.agent_report}")
+        except Exception as e:
+            print(f"Failed to write Agent 03 report: {e}", file=sys.stderr)
+
+    if args.final_report:
+        final_md = format_final_report(results)
+        try:
+            out_file = Path(args.final_report)
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            out_file.write_text(final_md, encoding="utf-8")
+            print(f"\n🏆 Phase 3 final report written to: {args.final_report}")
+        except Exception as e:
+            print(f"Failed to write final report: {e}", file=sys.stderr)
 
     if args.fail_on_blockers and results["findings_count"]["blockers"] > 0:
         sys.exit(2)

@@ -1,186 +1,184 @@
 ---
 name: repo-publish-prep
-description: Comprehensive readiness audit, sanitization, and packaging for publishing or pushing a codebase to GitHub, GitLab, Bitbucket, or other Git hosting platforms. Audits secrets, configures .gitignore, generates essential repo documentation (README, LICENSE, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT), cleans temporary artifacts, checks large files, and sets up CI/CD workflows and issue templates.
+description: Adversarial multi-agent audit and remediation protocol to prepare, sanitize, and verify codebases before publishing to GitHub, GitLab, or Bitbucket. Uses a 3-phase, 4-agent verification loop (Agent 01 Explorer, Agent 02 Documenter, Agent 03 Adversarial Auditor, Agent 04 Remediation Engineer) to eliminate documentation drift, eagerness bias, stubs, undeclared dependencies, hardcoded path leaks, and secrets.
 license: Apache-2.0
 metadata:
-  version: v1
+  version: v2
+  architecture: multi-agent-closed-loop
   compatibility: universal-agent-agnostic
 ---
 
 # Repository Publish & Hosting Preparation (`repo-publish-prep`)
 
-Prepare, sanitize, audit, and package any codebase before publishing or pushing to GitHub, GitLab, Bitbucket, or another remote Git hosting platform.
+An adversarial multi-agent verification protocol that guarantees **truth in code and documentation** before publishing or pushing to GitHub, GitLab, Bitbucket, or any remote Git hosting platform.
 
-This skill ensures zero leaked secrets, complete `.gitignore` protection, professional documentation, legal compliance, clean git history, and automated CI/CD workflows.
-
----
-
-## 🌐 Harness & Agent Agnosticism
-
-This skill is **100% harness- and agent-agnostic**. It operates identically across any autonomous coding assistant, multi-agent swarm, or human terminal.
-
-- **Zero Proprietary Couplings:** Does not rely on vendor-specific APIs, proprietary SDKs, or closed agent runtimes.
-- **Minimal System Requirements:**
-  - Terminal/Shell tool: To execute standard `python 3.8+` and `git 2.x` commands.
-  - File Read/Write tool: To inspect, create, or update repository files.
-- **Compatible Harnesses & Environments:**
-  - **Claude Code** (`.claude/skills/` or `skills/`)
-  - **Cursor / Windsurf** (`.cursorrules`, `.windsurfrules`, or rule context)
-  - **GitHub Copilot / Copilot Workspace** (`.github/copilot-instructions.md`)
-  - **Gemini CLI / Antigravity** (`.agents/skills/` or plugin)
-  - **Cline / Roo Code / Aider** (Project memory or instruction prompt)
-  - **Custom LLM Agents / LangChain / AutoGen / CrewAI / ReAct** (Standard tool calling)
-  - **Human Developers** (Standalone CLI via command line)
+Unlike generic audits that only check for file existence, this skill executes deep AST forensic inspections to eliminate **agent eagerness bias**, **unimplemented stubs**, **phantom/undeclared dependencies**, **hardcoded local environment leaks**, **broken markdown links**, and **secret leaks**.
 
 ---
 
-## Operating Modes
-
-When activated, determine the user's intent:
-
-1. **Audit / Diagnostic Mode (Default):**
-   - Run the automated auditor and present a structured **Readiness Scorecard** with Blockers, Warnings, and Recommendations.
-   - Do not modify files until the user reviews findings or requests remediation.
-
-2. **Remediation / Interactive Mode:**
-   - Walk through findings step-by-step, generating missing files and sanitizing issues with user confirmation.
-
-3. **Full Preparation Mode:**
-   - Execute an end-to-end sweep: audit, sanitize, scaffold missing documentation/templates, clean scratch files, verify build/tests, and prepare clean Git commits.
-
----
-
-## The 7-Pillar Preparation Workflow
+## 🏗️ The 3-Phase, 4-Agent Architecture
 
 ```mermaid
 flowchart TD
-    A["1. Secret & Credential Audit"] --> B["2. Git Hygiene & .gitignore"]
-    B --> C["3. Documentation Generation"]
-    C --> D["4. Licensing & Legal Compliance"]
-    D --> E["5. Code Cleanup & Formatting"]
-    E --> F["6. CI/CD & Community Health"]
-    F --> G["7. Verification & Commit Staging"]
+    Start["🚀 Skill Invocation"] --> CheckReadme{"Does README.md exist?"}
+    
+    %% Phase 1
+    CheckReadme -->|Yes| VerifyWithUser["Prompt User: Does README match intended application behavior?"]
+    VerifyWithUser -->|User: Drifted / Wrong| HaltUser["🛑 Stop Execution & Ask User for Clarification"]
+    VerifyWithUser -->|User: Verified OK| Phase2["Proceed to Phase 2"]
+    
+    CheckReadme -->|No| LaunchA1["Spawn Agent 01 (Archeologist / Explorer)"]
+    LaunchA1 --> A1Work["Agent 01 scans repo & generates findings report\n(Never writes README)"]
+    A1Work --> LaunchA2["Spawn Agent 02 (Verifier & Documenter)"]
+    LaunchA2 --> A2Verify{"Agent 02 independently verifies code on disk.\nDoes report match truth?"}
+    A2Verify -->|Fails / Discrepancy| A1Retry["Reject report with diff.\nAgent 01 discards & re-runs"]
+    A2Retry --> A1Work
+    A2Verify -->|Passes| A2Draft["Agent 02 writes README.md"]
+    A2Draft --> VerifyNewReadme["Prompt User: Verify newly generated README.md"]
+    VerifyNewReadme --> Phase2
+
+    %% Phase 2
+    Phase2 --> LaunchA3["Spawn Agent 03 (Adversarial Auditor)"]
+    LaunchA3 --> A3Scan["Agent 03 audits Codebase vs README:\n- Naming & casing\n- Eagerness bias & stubs\n- Import errors & ordering\n- Doc-to-code drift\n- Local path & environment leaks\n- Missing manifest dependencies"]
+    A3Scan --> A3Write["Write report to:\n.audit/verification/agent_03/report.md\n(Agent 03 makes NO code edits)"]
+    A3Write --> LaunchA4["Spawn Agent 04 (Remediation Engineer)"]
+    A4Work["Agent 04 implements fixes as defined in report.md"]
+    A3Write --> LaunchA4 --> A4Work
+    A4Work --> A3Recheck{"Control returned to Agent 03:\nRe-scan Codebase.\nDo all checks pass?"}
+    A3Recheck -->|Issues Remain| A3Update["Agent 03 updates report.md"] --> A4Work
+    A3Recheck -->|All Checks Pass| Phase3["Proceed to Phase 3"]
+
+    %% Phase 3
+    Phase3 --> FinalReport["Generate Final Report at:\n.agents/final_report/report.md"]
+    FinalReport --> PresentUser["Present Certification & Executive Summary to User"]
 ```
 
 ---
 
-### Phase 1: Automated Readiness Audit
+## 🌐 Harness Agnosticism
 
-Run the bundled zero-dependency Python audit tool on the target codebase:
-
-```bash
-python <SKILL_DIR>/scripts/audit_repo.py <TARGET_DIRECTORY>
-```
-
-To generate a machine-readable JSON summary or a Markdown report artifact:
-
-```bash
-# JSON output
-python <SKILL_DIR>/scripts/audit_repo.py <TARGET_DIRECTORY> --json
-
-# Markdown report output
-python <SKILL_DIR>/scripts/audit_repo.py <TARGET_DIRECTORY> --markdown <TARGET_DIRECTORY>/READINESS_REPORT.md
-```
-
-Review the scorecard output:
-- 🛑 **BLOCKERS:** Must be resolved before publishing (e.g., exposed API keys, tracked `.env`, files > 50MB).
-- ⚠️ **WARNINGS:** Highly recommended to resolve (e.g., missing LICENSE, missing README, uncommitted changes).
-- 💡 **RECOMMENDATIONS:** Best practices (e.g., CI/CD workflow, issue templates, dependabot).
+This protocol operates uniformly across any agent harness:
+- **Multi-Agent Runtimes (Antigravity, Claude Code, Swarms):** Launches distinct, specialized subagents for Agent 01, 02, 03, and 04 with strict role boundaries.
+- **Single-Agent Runtimes (Cursor, Windsurf, Copilot, Aider, CLI):** The primary agent sequentially adopts each of the 4 strict roles, observing tool boundaries and file write isolation between steps.
 
 ---
 
-### Phase 2: Step-by-Step Remediation
+## Detailed Execution Protocol
 
-#### Pillar 1: Secrets & Credentials Sanitization
-1. **Never commit real secrets:**
-   - If an API key or token was detected in code, move it to a local `.env` file or environment variable.
-   - Check if sensitive files (`.env`, `*.pem`, `id_rsa`) are tracked in Git index with `git ls-files`.
-   - If tracked, untrack immediately without deleting the local file:
+### Phase 1: README Verification & Ground-Truth Reconstruction
+
+The `README.md` is the legal contract between documentation and implementation.
+
+#### Case A: `README.md` Exists
+1. Read the existing `README.md`.
+2. Present a concise summary to the user:
+   > *"Here is the current documented purpose and behavior of the application. Does this accurately represent how the application is intended to run, or has it drifted?"*
+3. **If user signals drift or disagreement:**
+   - **Immediately halt execution.**
+   - Do NOT edit codebase files.
+   - Ask the user to clarify the intended application architecture and behavior before proceeding.
+4. **If user confirms accuracy:**
+   - Proceed directly to **Phase 2**.
+
+#### Case B: `README.md` is Missing (Agent 01 ⇄ Agent 02 Loop)
+When no README exists, launch two coordinated subagents:
+
+1. **Launch Agent 01 (`agent_01` — Codebase Archeologist):**
+   - **Role:** Read-only codebase explorer.
+   - **Task:** Walk the repository tree, discover entrypoints, inspect functions, routes, CLI arguments, and configuration files.
+   - **Output:** Writes an objective evidence report to `.audit/recon/agent_01_report.md`.
+   - **STRICT INVARIANT:** *Agent 01 is strictly forbidden from writing `README.md` directly.*
+
+2. **Launch Agent 02 (`agent_02` — Independent Verifier & Technical Writer):**
+   - **Role:** Independent verifier and technical documenter.
+   - **Task:** Reads `.audit/recon/agent_01_report.md` and independently cross-references every assertion against source code on disk.
+   - **STRICT INVARIANT:** *Agent 02 must NOT add any new ungrounded information outside verified code facts.*
+   - **Verification Gate:**
+     - If Agent 02 detects any discrepancy, hallucination, or ungrounded claim: it notifies Agent 01 with a specific rejection diff. Agent 01 discards the draft, re-investigates, and submits a revised report. *(Loop terminates after max 3 iterations if unresolved, escalating to user).*
+     - If verification passes: Agent 02 drafts `README.md` adhering to [templates/docs/README.template.md](./templates/docs/README.template.md).
+
+3. **User Verification Gate:**
+   - Present the newly generated `README.md` to the user for explicit review and confirmation.
+
+---
+
+### Phase 2: Implementation Integrity Loop (Agent 03 ⇄ Agent 04)
+
+Once the README is confirmed as ground truth, audit the code for 7 critical classes of irregularities.
+
+#### Step 2.1: Launch Agent 03 (`agent_03` — Adversarial Codebase Auditor)
+- **Role:** Pure auditor (Read-only on source code).
+- **Tooling:** Runs the bundled forensic AST scanners:
+  ```bash
+  python skills/repo-publish-prep/scripts/audit_repo.py <TARGET_DIRECTORY> --agent-report <TARGET_DIRECTORY>/.audit/verification/agent_03/report.md
+  ```
+- **Audits 7 Specialized Irregularity Classes:**
+  1. **Eagerness Bias & Stubs:** Detects hollow implementations, `pass` function bodies, `raise NotImplementedError`, `// TODO` comments, and empty exception swallowers (`except Exception: pass`).
+  2. **Dependency Manifest Mismatch:** Uses AST parsing (`scan_dependencies.py`) to catch modules imported in code but missing from `requirements.txt`, `pyproject.toml`, or `package.json`.
+  3. **Local Environment & Path Leaks:** Detects hardcoded developer user paths (`C:\Users\...`, `/home/...`), internal IP addresses, and hardcoded localhost ports.
+  4. **Document-to-Code Drift:** Detects broken Markdown relative links and verified CLI entrypoints claimed in README.
+  5. **Naming & Casing Irregularities:** Inconsistent naming conventions, typos, or misleading symbols.
+  6. **Import Errors & Ordering:** Syntax errors, broken relative imports, and import groupings.
+  7. **Secrets & Credentials:** API keys, tokens, `.env` files tracked in Git.
+- **Output:** Generates a structured triage report at:
+  ```text
+  .audit/verification/agent_03/report.md
+  ```
+- **STRICT INVARIANT:** *Agent 03 never edits source code files.*
+
+#### Step 2.2: Launch Agent 04 (`agent_04` — Remediation Engineer)
+- **Role:** Implementation and fix engineer.
+- **Task:** Reads `.audit/verification/agent_03/report.md` and implements 100% complete, production-grade solutions:
+  - Replaces hollow functions with full logic.
+  - Adds missing packages to `requirements.txt` / `package.json`.
+  - Replaces hardcoded user paths with environment variables or `pathlib` relative paths.
+  - Fixes dead documentation links.
+  - Removes sensitive credentials and generates `.env.example`.
+- **STRICT INVARIANT:** *Agent 04 must write real, testable code. No stubs, no ellipsis, no mock bypasses.*
+
+#### Step 2.3: Closed-Loop Re-Verification
+- Agent 04 finishes edits and hands control back to **Agent 03**.
+- Agent 03 re-executes the forensic scan:
+  ```bash
+  python skills/repo-publish-prep/scripts/audit_repo.py <TARGET_DIRECTORY> --agent-report <TARGET_DIRECTORY>/.audit/verification/agent_03/report.md
+  ```
+- If blockers remain: Agent 03 updates `report.md`, and Agent 04 iterates.
+- **Circuit Breaker:** Maximum 3 iterations. If an issue cannot be resolved automatically after 3 loops, pause and request user guidance.
+- When 0 blockers remain: Agent 03 certifies the loop as complete!
+
+---
+
+### Phase 3: Final Certification & Ledger
+
+Once Phase 2 passes with 100% clean bill of health:
+
+1. **Compile Final Report:**
+   Write the comprehensive certification report to:
+   ```text
+   .agents/final_report/report.md
+   ```
+   Adhering to [templates/audit/final_report.template.md](./templates/audit/final_report.template.md).
+
+2. **Present Final Certification to User:**
+   - Display executive summary: Score (100/100), Zero Drift, Zero Stubs, Zero Undeclared Dependencies.
+   - Confirm Git working tree cleanliness (`git status`).
+   - Offer to stage a clean initial or pre-publish commit:
      ```bash
-     git rm --cached <file>
+     git add .
+     git commit -m "chore: complete adversarial pre-publish audit and certification"
      ```
-   - Refer to [Secrets Remediation Runbook](./references/secrets_remediation.md) if secrets were already committed to history.
-
-2. **Generate `.env.example`:**
-   - Run the bundled generator to detect all referenced environment variables and create a sanitized template:
-     ```bash
-     python <SKILL_DIR>/scripts/generate_env_example.py <TARGET_DIRECTORY>
-     ```
-
-#### Pillar 2: Git Hygiene & Complete `.gitignore`
-1. Ensure `.gitignore` exists and includes universal ignore rules:
-   - Copy or append from [Universal .gitignore](./templates/gitignore/gitignore-universal.txt).
-2. Append stack-specific rules based on detected technologies:
-   - Node / TS: [Node .gitignore](./templates/gitignore/gitignore-node.txt)
-   - Python: [Python .gitignore](./templates/gitignore/gitignore-python.txt)
-   - Go: [Go .gitignore](./templates/gitignore/gitignore-go.txt)
-   - Rust: [Rust .gitignore](./templates/gitignore/gitignore-rust.txt)
-
-#### Pillar 3: Documentation & Presentation
-1. **`README.md`:**
-   - If missing or generic, draft a comprehensive `README.md` using [README Template](./templates/docs/README.template.md).
-   - Must include: Project title, concise overview, architecture/features, prerequisites, installation, configuration table, usage commands, testing instructions, and license link.
-2. **`CONTRIBUTING.md`:**
-   - Use [CONTRIBUTING Template](./templates/docs/CONTRIBUTING.template.md) to define PR requirements, code standards, and branch strategy.
-3. **`SECURITY.md`:**
-   - Use [SECURITY Template](./templates/docs/SECURITY.template.md) to establish a responsible vulnerability reporting channel.
-
-#### Pillar 4: Licensing & Legal Compliance
-1. Check if a `LICENSE` file exists.
-2. If missing, consult the user or refer to [License Selection Guide](./references/license_selection_guide.md):
-   - **MIT:** Permissive, lightweight, maximum adoption.
-   - **Apache-2.0:** Permissive with explicit contributor patent grants.
-   - **Proprietary:** Closed-source, All Rights Reserved.
-3. Ensure copyright year and owner placeholders are replaced with actual values.
-
-#### Pillar 5: Code Quality & Cleanliness
-1. Remove temporary agent scratch directories, debug dumps, and OS junk (`.DS_Store`, `Thumbs.db`).
-2. Add universal [`.editorconfig`](./templates/docs/editorconfig.template) to standardize indentation, line endings, and charset.
-3. Run project formatters and linters (e.g., `npm run lint`, `ruff check`, `black`, `cargo fmt`).
-
-#### Pillar 6: CI/CD & Community Health
-1. Setup automated Continuous Integration workflow under `.github/workflows/ci.yml`:
-   - Node: [Node CI Workflow](./templates/github/workflows/ci-node.yml)
-   - Python: [Python CI Workflow](./templates/github/workflows/ci-python.yml)
-   - Generic: [Generic CI Workflow](./templates/github/workflows/ci-generic.yml)
-2. Setup automated security updates: [Dependabot Config](./templates/github/dependabot.yml).
-3. Setup GitHub Community templates:
-   - Issue Templates: [Bug Report](./templates/github/ISSUE_TEMPLATE/bug_report.yml), [Feature Request](./templates/github/ISSUE_TEMPLATE/feature_request.yml)
-   - Pull Request: [PR Template](./templates/github/PULL_REQUEST_TEMPLATE.md)
-4. (Optional) For GitLab or Bitbucket, provide:
-   - GitLab: [GitLab CI Config](./templates/gitlab/gitlab-ci.yml)
-   - Bitbucket: [Bitbucket Pipelines](./templates/bitbucket/bitbucket-pipelines.yml)
 
 ---
 
-### Phase 3: Final Verification & Staging
+## 🛠️ Bundled Diagnostic Tools
 
-1. **Rerun Auditor to verify 100% clean bill of health:**
-   ```bash
-   python <SKILL_DIR>/scripts/audit_repo.py <TARGET_DIRECTORY> --fail-on-blockers
-   ```
-2. **Verify build and test passes locally:**
-   - Ensure the project builds without errors.
-   - Run the test suite (`npm test`, `pytest`, `cargo test`, etc.).
-3. **Check Git Status:**
-   ```bash
-   git status
-   ```
-   - Verify only desired files are staged.
-   - Ensure no credentials, binaries, or unwanted files appear in untracked files.
-4. **Present readiness summary to user** and offer to stage a clean initial or prep commit:
-   ```bash
-   git add .
-   git commit -m "chore: prepare repository for GitHub publishing"
-   ```
+All helper tools use Python 3 standard library with **zero external dependencies**:
 
----
-
-## References & Tools
-
-- 🛠️ [Auditor Script](./scripts/audit_repo.py)
-- 🛠️ [Env Example Generator](./scripts/generate_env_example.py)
-- 📖 [Readiness Checklist](./references/readiness_checklist.md)
-- 📖 [Secrets Remediation Runbook](./references/secrets_remediation.md)
-- 📖 [License Selection Guide](./references/license_selection_guide.md)
-- 📖 [Platform Feature Matrix](./references/platform_feature_matrix.md)
+| Tool | Purpose | Direct CLI Usage |
+| :--- | :--- | :--- |
+| **`audit_repo.py`** | Master auditor & scorecard generator | `python scripts/audit_repo.py . --agent-report .audit/verification/agent_03/report.md` |
+| **`scan_stubs.py`** | AST stub, `pass`, and eagerness bias hunter | `python scripts/scan_stubs.py .` |
+| **`scan_dependencies.py`** | AST import vs manifest mismatch scanner | `python scripts/scan_dependencies.py .` |
+| **`scan_path_leaks.py`** | Hardcoded Windows/POSIX user path scanner | `python scripts/scan_path_leaks.py .` |
+| **`scan_doc_drift.py`** | Dead markdown link and drift scanner | `python scripts/scan_doc_drift.py .` |
+| **`generate_env_example.py`** | Automated sanitized `.env.example` generator | `python scripts/generate_env_example.py .` |
