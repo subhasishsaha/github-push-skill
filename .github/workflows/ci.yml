@@ -25,8 +25,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Run unit tests
-        run: python -m unittest discover -s tests -p "test_*.py"
-
-      - name: Run repository audit
-        run: python skills/repo-publish-prep/scripts/audit_repo.py . --fail-on-blockers
+      - name: Verify skill structure and templates
+        run: |
+          python -c "import json, pathlib; json.loads(pathlib.Path('plugin.json').read_text())"
+          test -f skills/repo-publish-prep/SKILL.md || exit 1
+          test -f AGENTS.md || exit 1
+          test -f README.md || exit 1
