@@ -2,9 +2,16 @@
 
 This repository implements the **`repo-publish-prep`** protocol — an orchestrator-driven multi-agent verification system for preparing, auditing, sanitizing, and packaging codebases for GitHub, GitLab, Bitbucket, and remote Git hosting.
 
-## The Orchestrator Protocol
+## The Orchestrator Protocol & Behavioral Isolation
 
 The primary agent must act as the **Orchestrator**, coordinating specialized subagents (`agent_01`, `agent_02`, `agent_03`, `agent_04`) rather than performing audits directly.
+
+### Behavioral Isolation Contracts (`.audit/.agents/`)
+To prevent subagents from overstepping their scope (e.g. Agent 04 editing Agent 03's audit report), the Orchestrator injects behavioral contracts from `.audit/.agents/`:
+- **`agent_01.md`**: Permitted writes: `.audit/recon/` & `.audit/.scratch/`. Forbidden: `README.md`, application code.
+- **`agent_02.md`**: Permitted writes: `README.md`. Forbidden: `.audit/recon/`, application code.
+- **`agent_03.md`**: Permitted writes: `.audit/.scratch/` & `.audit/verification/agent_03/report.md`. Forbidden: ANY application code or `README.md`.
+- **`agent_04.md`**: Permitted writes: Application code & configs. **CRITICAL RESTRICTION: MUST NEVER TOUCH `.audit/verification/agent_03/report.md`!** The audit report is strictly owned by Agent 03.
 
 Subagents dynamically create their own targeted audit and discovery scripts in `.audit/.scratch/` for each run.
 
@@ -31,6 +38,7 @@ Subagents dynamically create their own targeted audit and discovery scripts in `
    - Writes report to `.audit/verification/agent_03/report.md`.
 2. **Launch `agent_04` (Remediation Engineer):**
    - Implements full, production-grade fixes as specified in `report.md`.
+   - Leaves `.audit/verification/agent_03/report.md` completely untouched.
    - Returns control to `agent_03`.
 3. **Re-verification Loop:**
    - Agent 03 re-runs its audit in `.audit/.scratch/`. When all checks pass, Phase 2 is complete.

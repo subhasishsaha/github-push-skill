@@ -7,7 +7,17 @@
 
 The primary coordinator acts as the **Orchestrator**, actively spawning and managing dedicated subagents (`agent_01`, `agent_02`, `agent_03`, `agent_04`).
 
-There are **no static pre-baked scripts**. For each audit run, subagents dynamically create on-demand inspection scripts in `.audit/.scratch/` tailored specifically to the target codebase's languages and frameworks.
+---
+
+## 🛡️ Behavioral Isolation Contracts (`.audit/.agents/`)
+
+To prevent subagents from overstepping their scope—such as **Agent 04 editing Agent 03's audit report** instead of fixing the application code—the Orchestrator enforces strict behavioral contracts stored in `.audit/.agents/`:
+- **`agent_01.md`**: Permitted writes: `.audit/recon/` & `.audit/.scratch/`. Forbidden: `README.md`, application code.
+- **`agent_02.md`**: Permitted writes: `README.md`. Forbidden: `.audit/recon/`, application code.
+- **`agent_03.md`**: Permitted writes: `.audit/.scratch/` & `.audit/verification/agent_03/report.md`. Forbidden: ANY application code or `README.md`.
+- **`agent_04.md`**: Permitted writes: Application code & configs. **CRITICAL RESTRICTION: MUST NEVER TOUCH `.audit/verification/agent_03/report.md`!** The audit report is strictly owned by Agent 03.
+
+The Orchestrator injects the exact behavioral contract from `.audit/.agents/agent_XX.md` into each subagent's system prompt and task instructions.
 
 ---
 
@@ -15,7 +25,8 @@ There are **no static pre-baked scripts**. For each audit run, subagents dynamic
 
 ```mermaid
 flowchart TD
-    Start["🚀 Orchestrator Invocation"] --> CheckReadme{"README.md exists?"}
+    Start["🚀 Orchestrator Invocation"] --> InitAgents["Initialize .audit/.agents/ contracts"]
+    InitAgents --> CheckReadme{"README.md exists?"}
     
     CheckReadme -->|Yes| VerifyUser["Prompt User: Does README match intended app behavior?"]
     VerifyUser -->|Drifted| Halt["🛑 Halt execution & ask user for clarification"]
@@ -29,7 +40,7 @@ flowchart TD
     Phase2 --> A3["Agent 03: Adversarial Auditor\nCreates dynamic scripts in .audit/.scratch/\nWrites to .audit/verification/agent_03/report.md"]
     A3 --> CheckBlockers{"Any blockers / issues?"}
     CheckBlockers -->|No| Phase3["Phase 3: Final Certification"]
-    CheckBlockers -->|Yes| A4["Agent 04: Remediation Engineer\nImplements real, un-stubbed fixes"]
+    CheckBlockers -->|Yes| A4["Agent 04: Remediation Engineer\nImplements real, un-stubbed fixes in code\n(NEVER touches report.md)"]
     A4 -->|Returns control| A3
 
     Phase3 --> FinalReport["Generates .agents/final_report/report.md\nStages clean Git commit"]
@@ -68,6 +79,7 @@ The `.audit/` directory is excluded in `.gitignore` so temporary audit scripts n
 │       ├── SKILL.md                           # Master multi-agent orchestrator runbook
 │       │
 │       ├── templates/                         # Production-grade templates
+│       │   ├── agents/                        # Behavioral contracts (agent_01..04.md)
 │       │   ├── audit/                         # agent_03_report & final_report templates
 │       │   ├── gitignore/                     # Node, Python, Go, Rust, Universal
 │       │   ├── docs/                          # README, CONTRIBUTING, SECURITY, EditorConfig

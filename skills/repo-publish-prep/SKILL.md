@@ -1,10 +1,10 @@
 ---
 name: repo-publish-prep
-description: Orchestrator protocol for multi-agent adversarial codebase preparation. The coordinator spawns and manages subagents (Agent 01 Explorer, Agent 02 Documenter, Agent 03 Adversarial Auditor, Agent 04 Remediation Engineer). Subagents write their own dynamic audit scripts in '.audit/.scratch/' to deeply verify imports, stubs, path leaks, doc drift, and secrets.
+description: Orchestrator protocol for multi-agent adversarial codebase preparation. The coordinator spawns and manages subagents (Agent 01 Explorer, Agent 02 Documenter, Agent 03 Adversarial Auditor, Agent 04 Remediation Engineer). Subagents write their own dynamic audit scripts in '.audit/.scratch/' and strictly adhere to behavioral isolation contracts stored in '.audit/.agents/'.
 license: Apache-2.0
 metadata:
-  version: v3
-  architecture: orchestrator-subagent-dynamic
+  version: v4
+  architecture: orchestrator-subagent-behavioral-isolation
   compatibility: universal-agent-agnostic
 ---
 
@@ -14,7 +14,20 @@ An orchestrator-driven multi-agent verification protocol that guarantees **truth
 
 The primary coordinator acts as the **Orchestrator**. It does not perform audits directly; it defines, spawns, and coordinates specialized **subagents** (`agent_01`, `agent_02`, `agent_03`, `agent_04`).
 
-There are **no static pre-baked scripts**. For each run, subagents dynamically create their own targeted inspection scripts in `.audit/.scratch/` tailored to the repository's languages and frameworks.
+---
+
+## 🛡️ Behavioral Isolation & File Boundary Contracts (`.audit/.agents/`)
+
+To prevent subagents from overstepping their scope—such as **Agent 04 editing Agent 03's audit report** instead of fixing the application code—the Orchestrator enforces strict behavioral contracts stored in:
+```text
+.audit/.agents/
+├── agent_01.md    # Explorer contract (write only .audit/recon/ & .audit/.scratch/)
+├── agent_02.md    # Documenter contract (write only README.md)
+├── agent_03.md    # Auditor contract (write only .audit/.scratch/ & .audit/verification/agent_03/report.md)
+└── agent_04.md    # Remediation contract (write ONLY application code; NEVER touch report.md)
+```
+
+The Orchestrator injects the exact behavioral contract from `.audit/.agents/agent_XX.md` into each subagent's system prompt and task instructions.
 
 ---
 
@@ -22,16 +35,17 @@ There are **no static pre-baked scripts**. For each run, subagents dynamically c
 
 ```mermaid
 flowchart TD
-    Start["🚀 Orchestrator Starts"] --> CheckReadme{"Does README.md exist?"}
+    Start["🚀 Orchestrator Starts"] --> InitAgents["Initialize .audit/.agents/ contracts"]
+    InitAgents --> CheckReadme{"Does README.md exist?"}
     
     %% Phase 1
     CheckReadme -->|Yes| VerifyWithUser["Prompt User: Does README match intended application behavior?"]
     VerifyWithUser -->|User: Drifted / Wrong| HaltUser["🛑 Halt Execution Immediately & Ask User for Clarification"]
     VerifyWithUser -->|User: Verified OK| Phase2["Proceed to Phase 2"]
     
-    CheckReadme -->|No| LaunchA1["Orchestrator spawns Agent 01 (Explorer)"]
+    CheckReadme -->|No| LaunchA1["Orchestrator injects .audit/.agents/agent_01.md\nSpawns Agent 01 (Explorer)"]
     LaunchA1 --> A1Work["Agent 01 inspects code, creates scratch scripts in .audit/.scratch/\nWrites .audit/recon/agent_01_report.md\n(STRICT: Never writes README.md)"]
-    A1Work --> LaunchA2["Orchestrator spawns Agent 02 (Verifier)"]
+    A1Work --> LaunchA2["Orchestrator injects .audit/.agents/agent_02.md\nSpawns Agent 02 (Verifier)"]
     LaunchA2 --> A2Verify{"Agent 02 verifies code on disk.\nDoes Agent 01 report match truth?"}
     A2Verify -->|Fails / Discrepancy| A1Retry["Reject report with diff.\nAgent 01 discards & re-runs"]
     A1Retry --> A1Work
@@ -40,12 +54,12 @@ flowchart TD
     VerifyNewReadme --> Phase2
 
     %% Phase 2
-    Phase2 --> LaunchA3["Orchestrator spawns Agent 03 (Adversarial Auditor)"]
+    Phase2 --> LaunchA3["Orchestrator injects .audit/.agents/agent_03.md\nSpawns Agent 03 (Adversarial Auditor)"]
     LaunchA3 --> A3Work["Agent 03 creates on-demand audit scripts in .audit/.scratch/:\n- AST stubs & eagerness bias\n- Import errors & undeclared packages\n- Hardcoded developer paths & IPs\n- Markdown link & doc drift\nWrites findings to .audit/verification/agent_03/report.md\n(STRICT: Makes NO application code edits)"]
     A3Work --> CheckIssues{"Are there blockers / issues?"}
     CheckIssues -->|No Issues| Phase3["Proceed to Phase 3"]
-    CheckIssues -->|Issues Found| LaunchA4["Orchestrator spawns Agent 04 (Remediation Engineer)"]
-    LaunchA4 --> A4Work["Agent 04 implements full, un-stubbed fixes"]
+    CheckIssues -->|Issues Found| LaunchA4["Orchestrator injects .audit/.agents/agent_04.md\nSpawns Agent 04 (Remediation Engineer)"]
+    LaunchA4 --> A4Work["Agent 04 implements full, un-stubbed fixes in code\n(STRICT: NEVER touches .audit/verification/agent_03/report.md)"]
     A4Work --> A3Recheck["Orchestrator returns control to Agent 03\nRe-runs dynamic audit in .audit/.scratch/"]
     A3Recheck --> CheckIssues
 
@@ -65,63 +79,44 @@ Instead of brittle static scripts, subagents write purpose-built scripts directl
   2. Imports vs manifests (`package.json`, `requirements.txt`, `pyproject.toml`, `Cargo.toml`, `go.mod`).
   3. Absolute paths (`C:\Users\...`, `/home/...`) and internal private IPs.
   4. Broken relative Markdown links and documented entrypoints.
-- `.audit/` (including `.audit/.scratch/`) is ignored in `.gitignore` so temporary audit scripts never dirty the repository.
+- `.audit/` (including `.audit/.scratch/` and `.audit/.agents/`) is ignored in `.gitignore` so temporary audit scripts never dirty the repository.
 
 ---
 
-## 🤖 The 4 Subagent Specifications
+## 🤖 The 4 Subagent Behavioral Boundaries
 
-The Orchestrator must define and spawn each subagent with strict role prompts:
+The Orchestrator must define and spawn each subagent with its explicit contract from `.audit/.agents/`:
 
 ### 1. `agent_01` — Codebase Archeologist / Explorer
-- **Role:** Read-only investigator.
-- **Prompt:**
-  ```text
-  You are Agent 01 (Codebase Archeologist). Your job is to thoroughly inspect this repository to discover what it does, how it runs, its entry points, tech stack, and architecture.
-  You may write temporary discovery scripts in '.audit/.scratch/' and run them.
-  Synthesize your verified findings into '.audit/recon/agent_01_report.md'.
-  CRITICAL INVARIANT: You are strictly forbidden from writing or modifying 'README.md'.
-  ```
+- **Contract File:** `.audit/.agents/agent_01.md`
+- **Permitted Writes:** `.audit/.scratch/*`, `.audit/recon/agent_01_report.md`.
+- **FORBIDDEN:** Creating or editing `README.md`, editing application source code, editing `.audit/verification/`.
 
 ### 2. `agent_02` — Independent Verifier & Technical Writer
-- **Role:** Adversarial verification and documentation.
-- **Prompt:**
-  ```text
-  You are Agent 02 (Independent Verifier). Read '.audit/recon/agent_01_report.md' and independently verify every single claim by inspecting the actual code on disk.
-  Do NOT add any ungrounded assumptions or hallucinated features.
-  If any claim in the report is inaccurate or unsupported by code, reject the report with a specific diff.
-  Once all claims are 100% verified, draft the official 'README.md' at repository root.
-  ```
+- **Contract File:** `.audit/.agents/agent_02.md`
+- **Permitted Writes:** `README.md` at repository root.
+- **FORBIDDEN:** Modifying `.audit/recon/agent_01_report.md`, editing application code, inventing ungrounded features.
 
 ### 3. `agent_03` — Adversarial Codebase Auditor
-- **Role:** Pure auditor (no application code edits).
-- **Prompt:**
-  ```text
-  You are Agent 03 (Adversarial Codebase Auditor). Audit the codebase against 'README.md' and production publishing standards.
-  Create dynamic audit scripts in '.audit/.scratch/' to test:
-  1. Eagerness bias & stubs (empty functions with 'pass' or '...', NotImplementedError, // TODO, empty catch blocks).
-  2. Undeclared dependencies (imports in code missing from package.json, requirements.txt, pyproject.toml).
-  3. Hardcoded developer paths (C:\Users\..., /home/...) and internal IPs.
-  4. Document-to-code drift (dead markdown links, claimed CLI flags that don't exist).
-  5. Secret leaks (API keys, tokens, tracked .env files).
-  Execute your scratch scripts and write the complete findings triage matrix to:
-  '.audit/verification/agent_03/report.md'.
-  CRITICAL INVARIANT: You must NOT edit application source code files.
-  ```
+- **Contract File:** `.audit/.agents/agent_03.md`
+- **Permitted Writes:** `.audit/.scratch/*`, `.audit/verification/agent_03/report.md`.
+- **FORBIDDEN:** Modifying application source code files, editing `README.md`, editing package manifests. Sole maintainer of the audit report.
 
 ### 4. `agent_04` — Remediation Engineer
-- **Role:** Implementation and fix engineer.
-- **Prompt:**
-  ```text
-  You are Agent 04 (Remediation Engineer). Read '.audit/verification/agent_03/report.md'.
-  Implement 100% complete, production-grade solutions for every action item listed.
-  CRITICAL INVARIANT: Zero stubs. No 'pass', no ellipsis, no placeholder comments, no mock bypasses. Every function and manifest update must be fully implemented and working.
-  When complete, inform the Orchestrator to return control to Agent 03 for re-audit.
-  ```
+- **Contract File:** `.audit/.agents/agent_04.md`
+- **Permitted Writes:** Application source code files, package manifests (`package.json`, `requirements.txt`), repository hygiene files (`.gitignore`, `.editorconfig`, `.env.example`, `CONTRIBUTING.md`, `SECURITY.md`).
+- **CRITICAL RESTRICTION:** **MUST NEVER TOUCH, EDIT, OR MODIFY `.audit/verification/agent_03/report.md` OR ANY FILE IN `.audit/verification/`!**
+  - The audit report belongs exclusively to Agent 03.
+  - Agent 04 must NEVER edit the report to check off boxes or delete findings.
+  - Agent 04 fixes the issues in actual source code. Agent 03 independently re-audits the code and updates the report itself.
+  - Zero stubs: No `pass`, no ellipsis, no placeholder comments, no mock bypasses.
 
 ---
 
 ## 🔄 Orchestrator Execution Protocol
+
+### Step 0: Behavioral Setup
+Ensure `.audit/.agents/` exists and contains the 4 behavioral contracts (bootstrapped from `templates/agents/` if needed).
 
 ### Phase 1: README Verification Gate
 1. Check if `README.md` exists.
@@ -130,18 +125,18 @@ The Orchestrator must define and spawn each subagent with strict role prompts:
    - If user signals drift: **Halt execution immediately.** Ask for clarification before proceeding.
    - If user confirms: Proceed to Phase 2.
 3. If `README.md` is missing:
-   - Orchestrator spawns `agent_01`. Agent 01 writes `.audit/recon/agent_01_report.md`.
-   - Orchestrator spawns `agent_02`. Agent 02 verifies. If failed, loops back to Agent 01 (Max 3 iterations). Once passed, Agent 02 drafts `README.md`.
+   - Orchestrator injects `.audit/.agents/agent_01.md` and spawns `agent_01`. Agent 01 writes `.audit/recon/agent_01_report.md`.
+   - Orchestrator injects `.audit/.agents/agent_02.md` and spawns `agent_02`. Agent 02 verifies. If failed, loops back to Agent 01 (Max 3 iterations). Once passed, Agent 02 drafts `README.md`.
    - Present newly drafted `README.md` to user for explicit confirmation.
 
 ### Phase 2: Implementation Integrity Loop
-1. Orchestrator creates directory `.audit/.scratch/` if not present.
-2. Orchestrator invokes `agent_03`.
+1. Orchestrator ensures directory `.audit/.scratch/` exists.
+2. Orchestrator injects `.audit/.agents/agent_03.md` and invokes `agent_03`.
 3. `agent_03` writes its inspection scripts into `.audit/.scratch/`, runs them, and outputs `.audit/verification/agent_03/report.md`.
 4. Orchestrator reads `.audit/verification/agent_03/report.md`.
 5. If blockers or warnings exist:
-   - Orchestrator invokes `agent_04` with the action items.
-   - `agent_04` implements real code fixes.
+   - Orchestrator injects `.audit/.agents/agent_04.md` and invokes `agent_04` with the action items.
+   - `agent_04` implements real code fixes. Agent 04 strictly leaves `report.md` untouched.
    - Orchestrator hands control back to `agent_03` to re-execute its scratch audit.
    - Loop repeats until 0 blockers remain (Circuit breaker: Max 3 iterations, then escalate to user).
 
