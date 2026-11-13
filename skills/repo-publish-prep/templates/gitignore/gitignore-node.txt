@@ -1,0 +1,31 @@
+# =============================================================================
+# Node.js / TypeScript / Web .gitignore
+# =============================================================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Build outputs and caches
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.turbo/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# Test and Coverage
+coverage/
+.nyc_output/
+
+# Package manager lockfile overrides
+# (Keep lockfiles in source control, ignore local temporary artifacts)
+package-lock.json.bak
+yarn.lock.bak
+pnpm-lock.yaml.bak

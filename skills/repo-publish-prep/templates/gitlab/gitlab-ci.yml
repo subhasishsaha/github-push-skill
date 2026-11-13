@@ -1,0 +1,28 @@
+# GitLab CI/CD Pipeline Configuration
+stages:
+  - lint
+  - test
+  - build
+
+default:
+  image: node:20-alpine
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .npm/
+
+lint_job:
+  stage: lint
+  script:
+    - npm ci
+    - npm run lint --if-present
+
+test_job:
+  stage: test
+  script:
+    - npm ci
+    - npm test --if-present

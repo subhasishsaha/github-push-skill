@@ -1,0 +1,24 @@
+{
+  "name": "repo-publish-prep",
+  "displayName": "Repository Publish & Hosting Preparation",
+  "version": "1.0.0",
+  "description": "Prepares, audits, sanitizes, and standardizes codebases for GitHub, GitLab, Bitbucket, and remote Git hosting. Checks secrets, generates essential documentation, standardizes .gitignore, cleans artifacts, and configures CI/CD workflows.",
+  "author": {
+    "name": "Antigravity Agent Community"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "github",
+    "git",
+    "codebase-prep",
+    "final-review",
+    "security-audit",
+    "ci-cd",
+    "documentation",
+    "open-source",
+    "readiness-audit"
+  ],
+  "skills": [
+    "skills/repo-publish-prep"
+  ]
+}

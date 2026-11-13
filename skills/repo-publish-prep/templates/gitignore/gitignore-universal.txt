@@ -1,0 +1,64 @@
+# =============================================================================
+# Universal .gitignore - OS files, Editors, Logs, Caches, and Secrets
+# =============================================================================
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# Environment and Secrets (CRITICAL: Never commit credentials)
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+client_secret*.json
+
+# IDEs and Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.#*
+
+# Logs and Debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+crash.log
+
+# Temporary and Scratch Directories
+tmp/
+temp/
+scratch/
+.scratch/
+*.bak
+*.tmp
+*.dump
+core
+core.*
