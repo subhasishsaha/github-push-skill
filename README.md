@@ -113,18 +113,35 @@ python skills/repo-publish-prep/scripts/generate_env_example.py .
 
 ---
 
-## 🤖 Using as an Agent Skill
+## 🌐 Universal Harness & Agent Agnosticism
 
-In Antigravity or compatible AI coding assistants:
+This skill is designed from the ground up to be **100% harness- and agent-agnostic**. It requires only standard terminal access (`python 3.8+`, `git 2.x`) and file system read/write tools. There are zero proprietary SDKs, vendor token constraints, or harness-specific dependencies.
 
-1. **Install or Mount:**
-   Add to `.agents/skills/` or install as a plugin via `plugin.json`.
-2. **Activate:**
-   Tell the agent:
-   > *"Prepare this codebase for publishing on GitHub."*  
-   > or  
-   > *"Run a final review audit before I push this repo."*
-3. The agent activates `repo-publish-prep`, scans for blockers, prompts you for any missing preferences (e.g. license or repository name), scaffolds required workflows, and stages clean commits.
+### Integration Matrix by Harness
+
+| Harness / Agent | Configuration Method | Location |
+| :--- | :--- | :--- |
+| **Claude Code** | Native skill directory | `.claude/skills/repo-publish-prep/` or `skills/repo-publish-prep/` |
+| **Cursor** | Context rules | Include reference in `.cursorrules` or `.cursor/skills/` |
+| **Windsurf** | Project rule | Mention skill workflow in `.windsurfrules` |
+| **GitHub Copilot** | Repository instructions | Reference in `.github/copilot-instructions.md` |
+| **Antigravity / Gemini** | Plugin or workspace skill | Mount `plugin.json` or place in `.agents/skills/` |
+| **Cline / Roo Code** | Custom instructions | Add `AGENTS.md` to system prompt / project memory |
+| **Aider** | Command / instructions | Pass `skills/repo-publish-prep/SKILL.md` to `/read` or `.aider.conf.yml` |
+| **Custom Agent / Swarms** | System prompt / Tool calling | Point LLM to `SKILL.md` and equip `bash`/`exec` and `file` tools |
+| **Human Developer** | Standalone CLI | Run `python skills/repo-publish-prep/scripts/audit_repo.py .` |
+
+---
+
+## 🤖 Activating the Skill
+
+Regardless of which agent harness you use, instruct your agent:
+
+> *"Prepare this codebase for publishing on GitHub."*  
+> or  
+> *"Run a final review readiness audit before I push to remote."*
+
+The agent will read [`SKILL.md`](skills/repo-publish-prep/SKILL.md) (or [`AGENTS.md`](AGENTS.md)), execute the auditor script, report any blockers/warnings, generate required boilerplate from the templates, and ensure a clean git working tree.
 
 ---
 

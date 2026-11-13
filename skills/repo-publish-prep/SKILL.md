@@ -4,7 +4,7 @@ description: Comprehensive readiness audit, sanitization, and packaging for publ
 license: Apache-2.0
 metadata:
   version: v1
-  author: Antigravity Agent Community
+  compatibility: universal-agent-agnostic
 ---
 
 # Repository Publish & Hosting Preparation (`repo-publish-prep`)
@@ -12,6 +12,25 @@ metadata:
 Prepare, sanitize, audit, and package any codebase before publishing or pushing to GitHub, GitLab, Bitbucket, or another remote Git hosting platform.
 
 This skill ensures zero leaked secrets, complete `.gitignore` protection, professional documentation, legal compliance, clean git history, and automated CI/CD workflows.
+
+---
+
+## 🌐 Harness & Agent Agnosticism
+
+This skill is **100% harness- and agent-agnostic**. It operates identically across any autonomous coding assistant, multi-agent swarm, or human terminal.
+
+- **Zero Proprietary Couplings:** Does not rely on vendor-specific APIs, proprietary SDKs, or closed agent runtimes.
+- **Minimal System Requirements:**
+  - Terminal/Shell tool: To execute standard `python 3.8+` and `git 2.x` commands.
+  - File Read/Write tool: To inspect, create, or update repository files.
+- **Compatible Harnesses & Environments:**
+  - **Claude Code** (`.claude/skills/` or `skills/`)
+  - **Cursor / Windsurf** (`.cursorrules`, `.windsurfrules`, or rule context)
+  - **GitHub Copilot / Copilot Workspace** (`.github/copilot-instructions.md`)
+  - **Gemini CLI / Antigravity** (`.agents/skills/` or plugin)
+  - **Cline / Roo Code / Aider** (Project memory or instruction prompt)
+  - **Custom LLM Agents / LangChain / AutoGen / CrewAI / ReAct** (Standard tool calling)
+  - **Human Developers** (Standalone CLI via command line)
 
 ---
 
