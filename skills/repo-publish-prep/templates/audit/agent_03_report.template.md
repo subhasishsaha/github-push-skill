@@ -40,8 +40,8 @@ Agent 03 completed an adversarial inspection of the codebase against the verifie
 
 1. **Agent 04** implements the exact remediation plans above without stubbing or skipping tests.
 2. Control is handed back to **Agent 03**.
-3. **Agent 03** re-executes:
+3. **Agent 03** re-executes dynamic scratch audit scripts in `.audit/.scratch/`:
    ```bash
-   python skills/repo-publish-prep/scripts/audit_repo.py <TARGET_DIRECTORY> --agent-report .audit/verification/agent_03/report.md
+   python .audit/.scratch/run_full_adversarial_audit.py
    ```
 4. If findings count reaches 0 blockers, Agent 03 issues certification to proceed to Phase 3.
